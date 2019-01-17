@@ -6,6 +6,9 @@
 
 ### EXAMPLE basic window
 
+# Main ref
+# https://www.rubydoc.info/github/gosu/gosu/master/Gosu
+
 class GameWindow < Gosu::Window
   # The constructor initializes the Gosu::Window base class. The parameters shown here create a 640x480 pixels large window. It also sets the caption of the window, which is displayed in its title bar.
     # You can create a fullscreen window by passing :fullscreen => true after the width and height.
