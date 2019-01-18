@@ -54,6 +54,8 @@ class MyWindow < Gosu::Window
     @hover_dir_list = false
     @cur_fps_txt = self.update_fps()
     @last_clicked_dir = nil
+    @tmpfont = Gosu::Font.new(self, Gosu::default_font_name, 20)
+    puts @tmpfont.name
   end
 
   def build_dir_list_txt(some_dir_str)
@@ -137,9 +139,8 @@ class MyWindow < Gosu::Window
        self.close!
     elsif (button == Gosu::KbSpace)
       puts "KbSpace"
-    elsif (button == Gosu::KbS)
-
     else
+      puts button
       super
     end
   end # END BUTTON DOWN
@@ -151,12 +152,11 @@ class MyWindow < Gosu::Window
       puts "INPUT: File "+"\'#{clicked_str}\'"+" was left-clicked"
       if (File.directory?(clicked_str) == true)
         puts "thats a FOLDER"
-          self.change_dir_context(clicked_str)
+        self.change_dir_context(clicked_str)
       elsif
         puts "thats a FILE"
       end
     end
-    # Keys_pressed[:mouse_left] = false
   end
 
   def right_click()
@@ -171,13 +171,12 @@ class MyWindow < Gosu::Window
         puts "thats a FILE"
       end
     end
-    # Keys_pressed[:mouse_right] = false
   end
 
   ####INPUT#######################################################
   def update_keys()
 
-    if Gosu.button_down?(Gosu::KB_LEFT)
+    if (Gosu.button_down?(Gosu::KB_LEFT) == true)
       if (Keys_pressed[:left] == false) # only happens 1 time on first push
         puts "KB_LEFT"
         Keys_pressed[:left] = true;
@@ -186,7 +185,7 @@ class MyWindow < Gosu::Window
       Keys_pressed[:left] = false;
     end
 
-    if Gosu.button_down?(Gosu::KB_RIGHT)
+    if (Gosu.button_down?(Gosu::KB_RIGHT) == true)
       if (Keys_pressed[:right] == false)
         puts "KB_RIGHT"
         Keys_pressed[:right] = true;
@@ -195,7 +194,7 @@ class MyWindow < Gosu::Window
       Keys_pressed[:right] = false;
     end
 
-    if Gosu.button_down?(Gosu::KB_UP)
+    if (Gosu.button_down?(Gosu::KB_UP) == true)
       if (Keys_pressed[:up] == false)
         puts "KB_UP"
         Keys_pressed[:up] = true;
@@ -204,7 +203,7 @@ class MyWindow < Gosu::Window
       Keys_pressed[:up] = false;
     end
 
-    if Gosu.button_down?(Gosu::KB_DOWN)
+    if (Gosu.button_down?(Gosu::KB_DOWN) == true)
       if (Keys_pressed[:down] == false)
         puts "KB_DOWN"
         Keys_pressed[:down] = true;
@@ -213,7 +212,7 @@ class MyWindow < Gosu::Window
       Keys_pressed[:down] = false;
     end
 
-    if Gosu.button_down?(Gosu::MS_LEFT)
+    if (Gosu.button_down?(Gosu::MS_LEFT) == true)
       if (Keys_pressed[:mouse_left] == false)
         puts "MS_LEFT"
         Keys_pressed[:mouse_left] = true;
@@ -223,7 +222,7 @@ class MyWindow < Gosu::Window
       Keys_pressed[:mouse_left] = false;
     end
 
-    if Gosu.button_down?(Gosu::MS_RIGHT)
+    if (Gosu.button_down?(Gosu::MS_RIGHT)  == true)
       if (Keys_pressed[:mouse_right] == false)
         puts "MS_RIGHT"
         Keys_pressed[:mouse_right] = true;
@@ -239,9 +238,7 @@ class MyWindow < Gosu::Window
   def draw()
       # draw_line(x1, y1, c1, x2, y2, c2, z=0, mode=:default) ⇒ void
       # draw_rect(x, y, width, height, c, z = 0, mode = :default) ⇒ void
-      # draw_rect(10,10,100,100,Colors::Green)
-      # draw_rect(WIN_W-110,10,100,100,Colors::Red)
-      draw_rect(10,WIN_H-110,100,100,Colors::Blue)
+      draw_rect(WIN_W-120,0,100,110,Colors::Blue)
       draw_rect(WIN_W-110,WIN_H-110,100,100,Colors::Green)
       # image.draw(x, y, z, scale_x = 1, scale_y = 1, color = 0xff_ffffff, mode = :default) ⇒ void
       @mouse_coords_txt_title.draw(WIN_W-120,0,0,
@@ -255,15 +252,24 @@ class MyWindow < Gosu::Window
       @cur_dir_path_title.draw(0,0,0,
                                1,1,Colors::Yellow)
       list_y = @cur_dir_list_top_offset
+      i = 0
       @cur_dir_list.each do |img|
+
+        if (File.directory?(@cur_dir_entries[i]) == true)
+          txt_color = Colors::Green # FOLDERS
+        else
+          txt_color = Colors::Yellow # FILES
+        end
         img.draw(@cur_dir_list_left_offset,list_y,0,
-                 1,1,Colors::Yellow)
+                 1,1,txt_color)
         list_y += Globals::Master_font_size
+        i += 1
       end
-      if (@hover_dir_list == true) # draw boxes around dir item and list
+
+      # draw color boxes around dir list and highlighted item
+      if (@hover_dir_list == true)
         list_px_length = ((@cur_dir_list.length) * Globals::Master_font_size)
         list_px_width = self.get_cur_list_width
-        # binding.pry
         self.draw_box(@cur_dir_list_left_offset,@cur_dir_list_top_offset-1,list_px_width+1,list_px_length+1,Colors::BrightPurple) # self.draw_box(x,y,width,height,color)
         hover_item_index = self.get_list_item_hover_index()
         self.draw_rect(@cur_dir_list_left_offset,@cur_dir_list_top_offset+(hover_item_index*Globals::Master_font_size),
@@ -273,6 +279,9 @@ class MyWindow < Gosu::Window
       # draw FPS
       @cur_fps_txt.draw(WIN_W-120,60,0,
                         1,1,Colors::Yellow)
+
+      # draw_text(text, x, y, z, scale_x = 1, scale_y = 1, color = 0xff_ffffff, mode = :default) ⇒ void
+      # @tmpfont.draw("Hello World!", WIN_W/2, WIN_H/2, 1, 1.0, 1.0, Colors::Blue)
   end # draw
 
   ####UPDATE#####################################################
