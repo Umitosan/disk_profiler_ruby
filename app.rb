@@ -44,29 +44,45 @@ class MyWindow < Gosu::Window
     @ctx = "start"
     @mouse_coords_txt_title = Gosu::Image.from_text( "Mouse X,Y: ", 20, {:align => :center})
     @mouse_coords_txt = "nothing yet"
-    @cur_mouse_x = 0;
-    @cur_mouse_y = 0;
+    @cur_mouse_x = 0
+    @cur_mouse_y = 0
     @cur_dir_entries = Dir.entries(".")
-    @cur_dir_list = self.build_dir_list_txt(".") # array of Gosu Txt Images
-    @cur_dir_list_top_offset = 20;
-    @cur_dir_list_left_offset = 20;
+    @cur_dir = nil
+    @cur_dir_list_width = nil
+    @cur_dir_list_top_offset = 20
+    @cur_dir_list_left_offset = 20
+    @list_spacer = 20
     @cur_dir_path_title = self.update_dir_path_txt()
     @hover_dir_list = false
     @cur_fps_txt = self.update_fps()
     @last_clicked_dir = nil
     @tmpfont = Gosu::Font.new(self, Gosu::default_font_name, 20)
+    @cur_dir_size = nil
+    self.setup()
     puts @tmpfont.name
+  end
+
+  def setup()
+    @cur_dir = self.build_dir_list_txt(".") # Gosu Txt Images: {"names" => file_names, "sizes" => file_sizes}
+    @cur_dir_list_width = self.get_cur_list_width()
   end
 
   def build_dir_list_txt(some_dir_str)
     entries = Dir.entries(some_dir_str)
-    new_arr = []
+    file_names = []
+    file_sizes = []
     i = 0
     entries.each do |item|
-      new_arr[i] = Gosu::Image.from_text( item.to_s, Globals::Master_font_size, {:align => :left})
+      file_names[i] = Gosu::Image.from_text( "#{item.to_s}",
+                                          Globals::Master_font_size,
+                                          {:align => :left})
+      file_sizes[i] = Gosu::Image.from_text( "(#{(File.size(item)).to_f / 1000} KB)",
+                                          Globals::Master_font_size,
+                                          {:align => :left})
       i += 1
     end
-    return new_arr
+    obj = {"names" => file_names, "sizes" => file_sizes}
+    return obj
   end
 
   def update_mouse_coords()
@@ -83,7 +99,8 @@ class MyWindow < Gosu::Window
   def change_dir_context(new_dir_str)
     Dir.chdir(new_dir_str)
     @cur_dir_entries = Dir.entries(".")
-    @cur_dir_list = self.build_dir_list_txt(".")
+    @cur_dir = self.build_dir_list_txt(".")
+    @cur_dir_list_width = self.get_cur_list_width()
     @cur_dir_path_title = self.update_dir_path_txt()
     @hover_dir_list = false
   end
@@ -103,7 +120,20 @@ class MyWindow < Gosu::Window
 
   def get_cur_list_width
     max_width = 2
-    @cur_dir_list.each do |img|
+    # @cur_dir = {"names" => file_names, "sizes" => file_sizes}
+    loop_len = @cur_dir["names"].length
+    loop_len.times do |i|
+      line_width = ( @cur_dir["names"][i].width + @cur_dir["sizes"][i].width + @list_spacer)
+      if (line_width > max_width)
+        max_width = line_width
+      end
+    end
+    return max_width
+  end
+
+  def get_img_list_max_width(array_of_images)
+    max_width = 2
+    array_of_images.each do |img|
       if (img.width > max_width)
         max_width = img.width
       end
@@ -112,11 +142,11 @@ class MyWindow < Gosu::Window
   end
 
   def check_mouse_over_list() # bounding on Dir list
-    list_px_length = ((@cur_dir_list.length) * Globals::Master_font_size)
-    list_px_width = self.get_cur_list_width
+    list_px_length = ((@cur_dir["names"].length) * Globals::Master_font_size)
+    # list_px_width = self.get_cur_list_width
     y_off = @cur_dir_list_top_offset
     x_off = @cur_dir_list_left_offset
-    if ((@cur_mouse_x > x_off) && (@cur_mouse_x < (x_off + list_px_width))) && ((@cur_mouse_y > y_off) && (@cur_mouse_y <= (y_off + list_px_length-1)))
+    if ((@cur_mouse_x > x_off) && (@cur_mouse_x < (x_off + @cur_dir_list_width))) && ((@cur_mouse_y > y_off) && (@cur_mouse_y <= (y_off + list_px_length-1)))
       @hover_dir_list = true
     else
       @hover_dir_list = false
@@ -251,9 +281,11 @@ class MyWindow < Gosu::Window
       # draw directory list
       @cur_dir_path_title.draw(0,0,0,
                                1,1,Colors::Yellow)
+
+      # draw file names
       list_y = @cur_dir_list_top_offset
       i = 0
-      @cur_dir_list.each do |img|
+      @cur_dir["names"].each do |img|
 
         if (File.directory?(@cur_dir_entries[i]) == true)
           txt_color = Colors::Green # FOLDERS
@@ -265,11 +297,27 @@ class MyWindow < Gosu::Window
         list_y += Globals::Master_font_size
         i += 1
       end
+      # draw file sizes
+      left_x_offset = ( @cur_dir_list_left_offset + self.get_img_list_max_width(@cur_dir["names"]) + @list_spacer )
+      list_y = @cur_dir_list_top_offset
+      i = 0
+      @cur_dir["sizes"].each do |img|
+
+        if (File.directory?(@cur_dir_entries[i]) == true)
+          txt_color = Colors::Green # FOLDERS
+        else
+          txt_color = Colors::Yellow # FILES
+        end
+        img.draw(left_x_offset,list_y,0,
+                 1,1,txt_color)
+        list_y += Globals::Master_font_size
+        i += 1
+      end
 
       # draw color boxes around dir list and highlighted item
       if (@hover_dir_list == true)
-        list_px_length = ((@cur_dir_list.length) * Globals::Master_font_size)
-        list_px_width = self.get_cur_list_width
+        list_px_length = ((@cur_dir["names"].length) * Globals::Master_font_size)
+        list_px_width = @cur_dir_list_width
         self.draw_box(@cur_dir_list_left_offset,@cur_dir_list_top_offset-1,list_px_width+1,list_px_length+1,Colors::BrightPurple) # self.draw_box(x,y,width,height,color)
         hover_item_index = self.get_list_item_hover_index()
         self.draw_rect(@cur_dir_list_left_offset,@cur_dir_list_top_offset+(hover_item_index*Globals::Master_font_size),
