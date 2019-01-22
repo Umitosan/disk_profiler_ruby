@@ -5,11 +5,12 @@ class Dir_list
                 :file_name_list,
                 :file_size_list,
                 :list_spacer,
+                :cur_dir_entries,
                 :cur_path_img,
                 :total_width,
                 :total_height,
                 :hover_list,
-                :cur_dir_entries
+                :hover_item_index
               )
 
   def initialize(x,y,cur_dir)
@@ -22,9 +23,12 @@ class Dir_list
     @cur_dir_entries = Dir.entries(".")
     @path_img = self.update_path_img()
     self.build_dir_list_txt(".")
-    @total_width = self.get_total_list_width()
-    @total_height = (@file_name_list.length * Globals::Master_font_size)
+    @file_name_list_width = self.get_img_list_max_width(@file_name_list)
+    @file_size_list_width = self.get_img_list_max_width(@file_size_list)
+    @total_width = ( @file_name_list_width + @file_size_list_width + @list_spacer )
+    @total_height = ( @file_name_list.length * Master_font_size )
     @hover_list = false
+    @hover_item_index = nil
     puts "Dir_list initialize complete"
   end
 
@@ -34,10 +38,10 @@ class Dir_list
     i = 0
     Dir.entries(dir_str).each do |item|
       name_list[i] = Gosu::Image.from_text("#{item.to_s}",
-                                                 Globals::Master_font_size,
+                                                 Master_font_size,
                                                  {:align => :left})
       size_list[i] = Gosu::Image.from_text("(#{(File.size(item)).to_f / 1000} KB)",
-                                                  Globals::Master_font_size,
+                                                  Master_font_size,
                                                   {:align => :left})
       i += 1
     end
@@ -50,17 +54,6 @@ class Dir_list
     return new_txt
   end
 
-  def get_total_list_width
-    found_width = 2
-    @file_name_list.length.times do |i|
-      line_width = ( @file_name_list[i].width + @file_size_list[i].width + @list_spacer)
-      if (line_width > found_width)
-        found_width = line_width
-      end
-    end
-    return found_width
-  end
-
   def get_img_list_max_width(array_of_images)
     max_width = 2
     array_of_images.each do |img|
@@ -71,25 +64,52 @@ class Dir_list
     return max_width
   end
 
-  def get_list_hover_item()
-    item = nil
-    f_size = Globals::Master_font_size
-    top_off = 20
-    return item
+  def get_list_item_hover_index()
+    return ((GameWindow.cur_mouse_y - @y - Master_font_size) / Master_font_size).floor
   end
 
-  def get_list_item_hover_index()
-    return ((gameWindow.cur_mouse_y - 20) / Globals::Master_font_size).floor
+  def check_mouse_over_list() # bounding on Dir list
+    list_px_length = (@file_name_list.length * Master_font_size)
+    # list_px_width = self.get_cur_list_width
+    y_off = @y + Master_font_size
+    x_off = @x
+    if ( ((GameWindow.cur_mouse_x > x_off) && (GameWindow.cur_mouse_x < (x_off + @total_width))) &&
+       ((GameWindow.cur_mouse_y > y_off) && (GameWindow.cur_mouse_y <= (y_off + list_px_length-1))) )
+      @hover_list = true
+    else
+      @hover_list = false
+    end
+  end
+
+  def change_dir_context(new_dir_str)
+    Dir.chdir(new_dir_str)
+    @cur_dir_entries = Dir.entries(".")
+    self.build_dir_list_txt(".")
+    @file_name_list_width = self.get_img_list_max_width(@file_name_list)
+    @file_size_list_width = self.get_img_list_max_width(@file_size_list)
+    @total_width = ( @file_name_list_width + @file_size_list_width )
+    @total_height = ( @file_name_list.length * Master_font_size )
+    @hover_list = false
+    @hover_item_index = nil
+    # @cur_dir_list_width = self.get_cur_list_width()
+    # @cur_dir_path_title = self.update_dir_path_txt()
   end
 
   def draw()
     ### directory title path
+    dir_path_color = Colors::Orange
     @path_img.draw(@x,@y,0,
-                   1,1,Colors::Yellow)
-    draw_line(@x,@y,Colors::Green,@x+40,@y,Colors::Green)
-    draw_line(@x,@y,Colors::Green,@x,@y+40,Colors::Green)
+                   1,1,dir_path_color)
+    draw_line(@x-2, @y-1, dir_path_color,
+              @x-2+@path_img.width+4, @y, dir_path_color)
+    draw_line(@x-2, @y-1, dir_path_color,
+              @x-2, @y+20, dir_path_color)
+    draw_line(@x-2, @y-1+20, dir_path_color,
+              @x-2+@path_img.width+4, @y+20, dir_path_color)
+    draw_line(@x-2+@path_img.width+4, @y, dir_path_color,
+              @x-2+@path_img.width+4, @y+19, dir_path_color)
     # draw file names
-    list_y = @y + Globals::Master_font_size
+    list_y = @y + Master_font_size
     i = 0
     @file_name_list.each do |img|
       if (File.directory?(@cur_dir_entries[i]) == true)
@@ -99,11 +119,11 @@ class Dir_list
       end
       img.draw(@x,list_y,0,
                1,1,txt_color)
-      list_y += Globals::Master_font_size
+      list_y += Master_font_size
       i += 1
     end
     ### draw file sizes
-    left_x_offset = ( 10 + self.get_img_list_max_width(@file_name_list) + @list_spacer )
+    left_x_offset = @file_name_list_width + @list_spacer
     list_y_offset = 20
     i = 0
     @file_size_list.each do |img|
@@ -114,22 +134,25 @@ class Dir_list
       end
       img.draw(@x + left_x_offset,@y + list_y_offset, 0,
                1,1,txt_color)
-      list_y_offset += Globals::Master_font_size
+      list_y_offset += Master_font_size
       i += 1
     end
-    # binding.pry
     # draw color boxes around dir list and highlighted item
-    if (Globals::GameWindow.hover_dir_list == true)
-      draw_box(@x,@y-1,@total_height+1,@total_width+1,Colors::BrightPurple) # draw_box(x,y,width,height,color)
-      # hover_item_index = self.get_list_item_hover_index()
-      # draw_rect(@cur_dir_list_left_offset,@cur_dir_list_top_offset+(hover_item_index*Globals::Master_font_size),
-      #                @total_width,Globals::Master_font_size,
-      #                Colors::Green)
+    if (@hover_list == true)
+      draw_box(@x, @y+Master_font_size-1 ,
+               @total_width+3, @total_height+1,
+               Colors::BrightPurple) # draw_box(x,y,width,height,color)
+      draw_rect(@x, @y+((@hover_item_index+1)*Master_font_size),
+                @total_width,Master_font_size,
+                Colors::Green)
     end
   end # end draw
 
   def update()
-
+    self.check_mouse_over_list();
+    if (@hover_list == true)
+      @hover_item_index = self.get_list_item_hover_index()
+    end
   end # end update
 
 end

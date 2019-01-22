@@ -6,6 +6,7 @@ require './list.rb'
 
 WIN_W = 1000
 WIN_H = 800
+Master_font_size = 20
 
 module Colors
   Black = 0x99000000
@@ -17,11 +18,6 @@ module Colors
   Orange = 0x80ff9900
   Mint = 0x8000ffbb
   BrightPurple = 0x80ff00ff
-end
-
-module Globals
-  Master_font_size = 20
-  GameWindow = nil
 end
 
 Keys_pressed = {
@@ -47,7 +43,7 @@ end
 
 
 class MyWindow < Gosu::Window
-  attr_accessor(:cur_mouse_x, :cur_mouse_y, :hover_dir_list)
+  attr_accessor(:cur_mouse_x, :cur_mouse_y, :hover_dir_list, :hover_item_index)
 
   def initialize()
     super(WIN_W, WIN_H, :fullscreen => false)
@@ -57,112 +53,15 @@ class MyWindow < Gosu::Window
     @mouse_coords_txt = "nothing yet"
     @cur_mouse_x = 0
     @cur_mouse_y = 0
-    @cur_dir_entries = Dir.entries(".")
-    @cur_dir = nil
-    @cur_dir_list_width = nil
-    @cur_dir_list_top_offset = 20
-    @cur_dir_list_left_offset = 20
-    @list_spacer = 20
-    @cur_dir_path_title = self.update_dir_path_txt()
-    @hover_dir_list = false
     @cur_fps_txt = self.update_fps()
     @last_clicked_dir = nil
-    @tmpfont = Gosu::Font.new(self, Gosu::default_font_name, 20)
-    @cur_dir_size = nil
-    @list = nil
-    self.setup()
-    puts @tmpfont.name
-  end
-
-  def setup()
-    @cur_dir = self.build_dir_list_txt(".") # Gosu Txt Images: {"names" => file_names, "sizes" => file_sizes}
-    @cur_dir_list_width = self.get_cur_list_width()
-    @list = Dir_list.new(WIN_W-400,200,".") # initialize(x,y,cur_dir)
-  end
-
-  def build_dir_list_txt(some_dir_str)
-    entries = Dir.entries(some_dir_str)
-    file_names = []
-    file_sizes = []
-    i = 0
-    entries.each do |item|
-      file_names[i] = Gosu::Image.from_text( "#{item.to_s}",
-                                          Globals::Master_font_size,
-                                          {:align => :left})
-      file_sizes[i] = Gosu::Image.from_text( "(#{(File.size(item)).to_f / 1000} KB)",
-                                          Globals::Master_font_size,
-                                          {:align => :left})
-      i += 1
-    end
-    obj = {"names" => file_names, "sizes" => file_sizes}
-    return obj
+    @list = Dir_list.new(40,40,".") # initialize(x,y,cur_dir)
   end
 
   def update_mouse_coords()
     @cur_mouse_x = self.mouse_x
     @cur_mouse_y = self.mouse_y
     @mouse_coords_txt = Gosu::Image.from_text( "#{@cur_mouse_x},#{@cur_mouse_y}", 20)
-  end
-
-  def update_dir_path_txt()
-    new_txt = Gosu::Image.from_text( Dir.pwd, 20)
-    return new_txt
-  end
-
-  def change_dir_context(new_dir_str)
-    Dir.chdir(new_dir_str)
-    @cur_dir_entries = Dir.entries(".")
-    @cur_dir = self.build_dir_list_txt(".")
-    @cur_dir_list_width = self.get_cur_list_width()
-    @cur_dir_path_title = self.update_dir_path_txt()
-    @hover_dir_list = false
-  end
-
-
-  def get_cur_list_width
-    max_width = 2
-    # @cur_dir = {"names" => file_names, "sizes" => file_sizes}
-    loop_len = @cur_dir["names"].length
-    loop_len.times do |i|
-      line_width = ( @cur_dir["names"][i].width + @cur_dir["sizes"][i].width + @list_spacer)
-      if (line_width > max_width)
-        max_width = line_width
-      end
-    end
-    return max_width
-  end
-
-  def get_img_list_max_width(array_of_images)
-    max_width = 2
-    array_of_images.each do |img|
-      if (img.width > max_width)
-        max_width = img.width
-      end
-    end
-    return max_width
-  end
-
-  def check_mouse_over_list() # bounding on Dir list
-    list_px_length = ((@cur_dir["names"].length) * Globals::Master_font_size)
-    # list_px_width = self.get_cur_list_width
-    y_off = @cur_dir_list_top_offset
-    x_off = @cur_dir_list_left_offset
-    if ((@cur_mouse_x > x_off) && (@cur_mouse_x < (x_off + @cur_dir_list_width))) && ((@cur_mouse_y > y_off) && (@cur_mouse_y <= (y_off + list_px_length-1)))
-      @hover_dir_list = true
-    else
-      @hover_dir_list = false
-    end
-  end
-
-  def get_list_hover_item()
-    item = nil
-    f_size = Globals::Master_font_size
-    top_off = @cur_dir_list_top_offset
-    return item
-  end
-
-  def get_list_item_hover_index()
-    return ((@cur_mouse_y - @cur_dir_list_top_offset) / Globals::Master_font_size).floor
   end
 
   def button_down(button)
@@ -177,13 +76,14 @@ class MyWindow < Gosu::Window
   end # END BUTTON DOWN
 
   def left_click()
-    if (@hover_dir_list == true)
-      ind = self.get_list_item_hover_index()
-      clicked_str = @cur_dir_entries[ind]
+    if (@list.hover_list == true)
+      ind = @list.hover_item_index
+      # binding.pry
+      clicked_str = @list.cur_dir_entries[ind]
       puts "INPUT: File "+"\'#{clicked_str}\'"+" was left-clicked"
       if (File.directory?(clicked_str) == true)
         puts "thats a FOLDER"
-        self.change_dir_context(clicked_str)
+        @list.change_dir_context(clicked_str)
       elsif
         puts "thats a FILE"
       end
@@ -191,17 +91,17 @@ class MyWindow < Gosu::Window
   end
 
   def right_click()
-    if (@hover_dir_list == true)
-      ind = self.get_list_item_hover_index()
-      clicked_str = @cur_dir_entries[ind]
-      puts "INPUT: File "+"\'#{clicked_str}\'"+" was right-clicked"
-      if (File.directory?(clicked_str) == true)
-        puts "thats a FOLDER"
-        self.change_dir_context(clicked_str)
-      elsif
-        puts "thats a FILE"
-      end
-    end
+    # if (@hover_dir_list == true)
+    #   ind = self.get_list_item_hover_index()
+    #   clicked_str = @cur_dir_entries[ind]
+    #   puts "INPUT: File "+"\'#{clicked_str}\'"+" was right-clicked"
+    #   if (File.directory?(clicked_str) == true)
+    #     puts "thats a FOLDER"
+    #     self.change_dir_context(clicked_str)
+    #   elsif
+    #     puts "thats a FILE"
+    #   end
+    # end
   end
 
   def update_fps()
@@ -272,6 +172,7 @@ class MyWindow < Gosu::Window
 
   ####DRAW#######################################################
   def draw()
+      @list.draw()
       # draw_line(x1, y1, c1, x2, y2, c2, z=0, mode=:default) ⇒ void
       # draw_rect(x, y, width, height, c, z = 0, mode = :default) ⇒ void
       # image.draw(x, y, z, scale_x = 1, scale_y = 1, color = 0xff_ffffff, mode = :default) ⇒ void
@@ -282,73 +183,26 @@ class MyWindow < Gosu::Window
       # draw cursor
       draw_rect(@cur_mouse_x-11,@cur_mouse_y-1,22,3,Colors::BrightPurple,1)
       draw_rect(@cur_mouse_x-1,@cur_mouse_y-11,3,22,Colors::BrightPurple,1)
-      # draw directory list
-      @cur_dir_path_title.draw(0,0,0,
-                               1,1,Colors::Yellow)
-
-      # draw file names
-      list_y = @cur_dir_list_top_offset
-      i = 0
-      @cur_dir["names"].each do |img|
-        if (File.directory?(@cur_dir_entries[i]) == true)
-          txt_color = Colors::Green # FOLDERS
-        else
-          txt_color = Colors::Yellow # FILES
-        end
-        img.draw(@cur_dir_list_left_offset,list_y,0,
-                 1,1,txt_color)
-        list_y += Globals::Master_font_size
-        i += 1
-      end
-      # draw file sizes
-      left_x_offset = ( @cur_dir_list_left_offset + self.get_img_list_max_width(@cur_dir["names"]) + @list_spacer )
-      list_y = @cur_dir_list_top_offset
-      i = 0
-      @cur_dir["sizes"].each do |img|
-        if (File.directory?(@cur_dir_entries[i]) == true)
-          txt_color = Colors::Green # FOLDERS
-        else
-          txt_color = Colors::Yellow # FILES
-        end
-        img.draw(left_x_offset,list_y,0,
-                 1,1,txt_color)
-        list_y += Globals::Master_font_size
-        i += 1
-      end
-
-      # draw color boxes around dir list and highlighted item
-      if (@hover_dir_list == true)
-        list_px_length = ((@cur_dir["names"].length) * Globals::Master_font_size)
-        list_px_width = @cur_dir_list_width
-        draw_box(@cur_dir_list_left_offset,@cur_dir_list_top_offset-1,list_px_width+1,list_px_length+1,Colors::BrightPurple) # draw_box(x,y,width,height,color)
-        hover_item_index = self.get_list_item_hover_index()
-        draw_rect(@cur_dir_list_left_offset,@cur_dir_list_top_offset+(hover_item_index*Globals::Master_font_size),
-                      list_px_width,Globals::Master_font_size,
-                      Colors::Green)
-      end
       # draw FPS
       @cur_fps_txt.draw(WIN_W-120,60,0,
                         1,1,Colors::Yellow)
 
       # draw_text(text, x, y, z, scale_x = 1, scale_y = 1, color = 0xff_ffffff, mode = :default) ⇒ void
       # @tmpfont.draw("Hello World!", WIN_W/2, WIN_H/2, 1, 1.0, 1.0, Colors::Blue)
-      @list.draw()
   end # draw
 
   ####UPDATE#####################################################
   def update()
       self.update_keys()
       self.update_mouse_coords()
-      self.check_mouse_over_list()
+      @list.update()
       if ((Gosu.milliseconds % 100) <= 17)
         @cur_fps_txt = self.update_fps()
       end
-      @list.update()
   end # update
 
 end # END MyWindow
 
-
 # start it up
-Globals::GameWindow = MyWindow.new
-Globals::GameWindow.show
+GameWindow = MyWindow.new
+GameWindow.show
