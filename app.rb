@@ -1,12 +1,11 @@
 require 'rubygems'
 require 'gosu'
-include Gosu
+include Gosu # so that Gosu's methods can be accessed faster
 require 'pry'
-# require_relative 'player'
+require './list.rb'
 
 WIN_W = 1000
 WIN_H = 800
-
 
 module Colors
   Black = 0x99000000
@@ -22,6 +21,7 @@ end
 
 module Globals
   Master_font_size = 20
+  GameWindow = nil
 end
 
 Keys_pressed = {
@@ -36,7 +36,18 @@ Keys_pressed = {
 }
 
 
+
+def draw_box(x,y,width,height,color)
+  # draw_line(x1, y1, c1, x2, y2, c2, z=0, mode=:default) ⇒ void
+  draw_line(x,y,color,x+width,y,color)
+  draw_line(x+width,y,color,x+width,y+height,color)
+  draw_line(x+width,y+height,color,x,y+height,color)
+  draw_line(x,y+height,color,x,y,color)
+end
+
+
 class MyWindow < Gosu::Window
+  attr_accessor(:cur_mouse_x, :cur_mouse_y, :hover_dir_list)
 
   def initialize()
     super(WIN_W, WIN_H, :fullscreen => false)
@@ -58,6 +69,7 @@ class MyWindow < Gosu::Window
     @last_clicked_dir = nil
     @tmpfont = Gosu::Font.new(self, Gosu::default_font_name, 20)
     @cur_dir_size = nil
+    @list = nil
     self.setup()
     puts @tmpfont.name
   end
@@ -65,6 +77,7 @@ class MyWindow < Gosu::Window
   def setup()
     @cur_dir = self.build_dir_list_txt(".") # Gosu Txt Images: {"names" => file_names, "sizes" => file_sizes}
     @cur_dir_list_width = self.get_cur_list_width()
+    @list = Dir_list.new(WIN_W-400,200,".") # initialize(x,y,cur_dir)
   end
 
   def build_dir_list_txt(some_dir_str)
@@ -105,18 +118,6 @@ class MyWindow < Gosu::Window
     @hover_dir_list = false
   end
 
-  def update_fps()
-    new_img = Gosu::Image.from_text( "fps = #{Gosu.fps}", 20,{:align => :right})
-    return new_img
-  end
-
-  def draw_box(x,y,width,height,color)
-    # draw_line(x1, y1, c1, x2, y2, c2, z=0, mode=:default) ⇒ void
-    draw_line(x,y,color,x+width,y,color)
-    draw_line(x+width,y,color,x+width,y+height,color)
-    draw_line(x+width,y+height,color,x,y+height,color)
-    draw_line(x,y+height,color,x,y,color)
-  end
 
   def get_cur_list_width
     max_width = 2
@@ -203,6 +204,11 @@ class MyWindow < Gosu::Window
     end
   end
 
+  def update_fps()
+    new_img = Gosu::Image.from_text( "fps = #{Gosu.fps}", 20,{:align => :right})
+    return new_img
+  end
+
   ####INPUT#######################################################
   def update_keys()
 
@@ -268,8 +274,6 @@ class MyWindow < Gosu::Window
   def draw()
       # draw_line(x1, y1, c1, x2, y2, c2, z=0, mode=:default) ⇒ void
       # draw_rect(x, y, width, height, c, z = 0, mode = :default) ⇒ void
-      draw_rect(WIN_W-120,0,100,110,Colors::Blue)
-      draw_rect(WIN_W-110,WIN_H-110,100,100,Colors::Green)
       # image.draw(x, y, z, scale_x = 1, scale_y = 1, color = 0xff_ffffff, mode = :default) ⇒ void
       @mouse_coords_txt_title.draw(WIN_W-120,0,0,
                                    1,1,Colors::Yellow)
@@ -286,7 +290,6 @@ class MyWindow < Gosu::Window
       list_y = @cur_dir_list_top_offset
       i = 0
       @cur_dir["names"].each do |img|
-
         if (File.directory?(@cur_dir_entries[i]) == true)
           txt_color = Colors::Green # FOLDERS
         else
@@ -302,7 +305,6 @@ class MyWindow < Gosu::Window
       list_y = @cur_dir_list_top_offset
       i = 0
       @cur_dir["sizes"].each do |img|
-
         if (File.directory?(@cur_dir_entries[i]) == true)
           txt_color = Colors::Green # FOLDERS
         else
@@ -318,9 +320,9 @@ class MyWindow < Gosu::Window
       if (@hover_dir_list == true)
         list_px_length = ((@cur_dir["names"].length) * Globals::Master_font_size)
         list_px_width = @cur_dir_list_width
-        self.draw_box(@cur_dir_list_left_offset,@cur_dir_list_top_offset-1,list_px_width+1,list_px_length+1,Colors::BrightPurple) # self.draw_box(x,y,width,height,color)
+        draw_box(@cur_dir_list_left_offset,@cur_dir_list_top_offset-1,list_px_width+1,list_px_length+1,Colors::BrightPurple) # draw_box(x,y,width,height,color)
         hover_item_index = self.get_list_item_hover_index()
-        self.draw_rect(@cur_dir_list_left_offset,@cur_dir_list_top_offset+(hover_item_index*Globals::Master_font_size),
+        draw_rect(@cur_dir_list_left_offset,@cur_dir_list_top_offset+(hover_item_index*Globals::Master_font_size),
                       list_px_width,Globals::Master_font_size,
                       Colors::Green)
       end
@@ -330,6 +332,7 @@ class MyWindow < Gosu::Window
 
       # draw_text(text, x, y, z, scale_x = 1, scale_y = 1, color = 0xff_ffffff, mode = :default) ⇒ void
       # @tmpfont.draw("Hello World!", WIN_W/2, WIN_H/2, 1, 1.0, 1.0, Colors::Blue)
+      @list.draw()
   end # draw
 
   ####UPDATE#####################################################
@@ -340,11 +343,12 @@ class MyWindow < Gosu::Window
       if ((Gosu.milliseconds % 100) <= 17)
         @cur_fps_txt = self.update_fps()
       end
+      @list.update()
   end # update
 
 end # END MyWindow
 
 
 # start it up
-gameWindow = MyWindow.new
-gameWindow.show
+Globals::GameWindow = MyWindow.new
+Globals::GameWindow.show
