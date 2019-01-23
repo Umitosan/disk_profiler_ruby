@@ -42,7 +42,9 @@ Keys_pressed = {
   'space' => false,
   'enter' => false,
   'mouse_left' => false,
-  'mouse_right' => false
+  'mouse_right' => false,
+  'mouse_wheel_down' => false,
+  'mouse_wheel_up' => false
 }
 
 
@@ -83,6 +85,22 @@ class MyWindow < Gosu::Window
        self.close!
     elsif (button == Gosu::KbSpace)
       puts "KbSpace"
+    elsif (button == Gosu::MsWheelDown)
+      if (Keys_pressed[:mouse_wheel_down] == false)
+        puts "MsWheelDown"
+        Keys_pressed[:mouse_wheel_down] = true;
+        self.mouse_w_down()
+      else
+        Keys_pressed[:mouse_wheel_down] = false;
+      end
+    elsif (button == Gosu::MsWheelUp)
+      if (Keys_pressed[:mouse_wheel_up] == false)
+        puts "MsWheelUp"
+        Keys_pressed[:mouse_wheel_up] = true;
+        self.mouse_w_up()
+      else
+        Keys_pressed[:mouse_wheel_up] = false;
+      end
     else
       puts button
       super
@@ -105,17 +123,14 @@ class MyWindow < Gosu::Window
   end
 
   def right_click()
-    # if (@hover_dir_list == true)
-    #   ind = self.get_list_item_hover_index()
-    #   clicked_str = @cur_dir_entries[ind]
-    #   puts "INPUT: File "+"\'#{clicked_str}\'"+" was right-clicked"
-    #   if (File.directory?(clicked_str) == true)
-    #     puts "thats a FOLDER"
-    #     self.change_dir_context(clicked_str)
-    #   elsif
-    #     puts "thats a FILE"
-    #   end
-    # end
+  end
+
+  def mouse_w_up()
+    @list.try_move_list_up()
+  end
+
+  def mouse_w_down()
+    @list.try_move_list_down()
   end
 
   def update_fps()

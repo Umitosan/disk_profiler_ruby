@@ -30,7 +30,9 @@ class Dir_list
     @total_height = ( @file_name_list.length * Master_font_size )
     @hover_list = false
     @hover_item_index = nil
+    @camera_index_offset = 0
     puts "Dir_list initialize complete"
+    puts "@file_name_list.length = #{@file_name_list.length}"
   end
 
   def build_dir_list_txt(dir_str)
@@ -84,6 +86,7 @@ class Dir_list
 
   def change_dir_context(new_dir_str)
     Dir.chdir(new_dir_str)
+    @camera_index_offset = 0
     @cur_dir_entries = Dir.entries(".")
     self.build_dir_list_txt(".")
     @path_img = self.update_path_img()
@@ -93,6 +96,20 @@ class Dir_list
     @total_height = ( @file_name_list.length * Master_font_size )
     @hover_list = false
     @hover_item_index = nil
+  end
+
+  def try_move_list_up()
+    if (@camera_index_offset > 0)
+      @camera_index_offset -= 1
+      puts "@camera_index_offset = #{@camera_index_offset}"
+    end
+  end
+
+  def try_move_list_down()
+    if (@camera_index_offset < @file_name_list.length)
+      @camera_index_offset += 1
+      puts "@camera_index_offset = #{@camera_index_offset}"
+    end
   end
 
   def draw()
@@ -109,30 +126,32 @@ class Dir_list
               @x-2+@path_img.width+4, @y-@title_size+8, dir_path_color)
     # draw file names
     list_y = @y
-    i = 0
-    @file_name_list.each do |img|
+    # i = 0
+    i = @camera_index_offset
+    (@file_name_list.length - @camera_index_offset).times do |j|
       if (File.directory?(@cur_dir_entries[i]) == true)
         txt_color = Colors::Green # FOLDERS
       else
         txt_color = Colors::Yellow # FILES
       end
-      img.draw(@x,list_y,0,
-               1,1,txt_color)
+      @file_name_list[i].draw(@x,list_y,0,
+                              1,1,txt_color)
       list_y += Master_font_size
       i += 1
     end
     ### draw file sizes
     left_x_offset = @file_name_list_width + @list_spacer
     list_y_offset = 0
-    i = 0
-    @file_size_list.each do |img|
+    # i = 0
+    i = @camera_index_offset
+    (@file_size_list.length - @camera_index_offset).times do |j|
       if (File.directory?(@cur_dir_entries[i]) == true)
         txt_color = Colors::Green # FOLDERS
       else
         txt_color = Colors::Yellow # FILES
       end
-      img.draw(@x + left_x_offset,@y + list_y_offset, 0,
-               1,1,txt_color)
+      @file_size_list[i].draw(@x + left_x_offset,@y + list_y_offset, 0,
+                              1,1,txt_color)
       list_y_offset += Master_font_size
       i += 1
     end
