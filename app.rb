@@ -9,16 +9,30 @@ WIN_H = 800
 Master_font_size = 20
 
 module Colors
-  Black = 0x99000000
+  Black = 0xff000000
   LightBlk = 0x33000000
-  Red = 0x80ff0000
-  Green = 0x8000ff00
-  Blue = 0x800000ff
-  Yellow = 0x80ffff00
-  Orange = 0x80ff9900
-  Mint = 0x8000ffbb
-  BrightPurple = 0x80ff00ff
+  Red = 0xaaff0000
+  Green = 0xaa00ff00
+  MossGreen = 0xaa228811
+  Blue = 0xaa0000ff
+  Yellow = 0xaaffff00
+  Orange = 0xaaff9900
+  Mint = 0xaa00ffbb
+  BrightPurple = 0xbbff00ff
 end
+
+# BUILT IN COLORS
+# NONE = Gosu::Color.argb(0x00_000000)
+# BLACK = Gosu::Color.argb(0xff_000000)
+# GRAY = Gosu::Color.argb(0xff_808080)
+# WHITE = Gosu::Color.argb(0xff_ffffff)
+# AQUA = Gosu::Color.argb(0xff_00ffff)
+# RED = Gosu::Color.argb(0xff_ff0000)
+# GREEN = Gosu::Color.argb(0xff_00ff00)
+# BLUE = Gosu::Color.argb(0xff_0000ff)
+# YELLOW = Gosu::Color.argb(0xff_ffff00)
+# FUCHSIA = Gosu::Color.argb(0xff_ff00ff)
+# CYAN = Gosu::Color.argb(0xff_00ffff)
 
 Keys_pressed = {
   'left' => false,
@@ -35,9 +49,9 @@ Keys_pressed = {
 
 def draw_box(x,y,width,height,color)
   # draw_line(x1, y1, c1, x2, y2, c2, z=0, mode=:default) ⇒ void
-  draw_line(x,y,color,x+width,y,color)
+  draw_line(x,y,color,x+width-1,y,color)
   draw_line(x+width,y,color,x+width,y+height,color)
-  draw_line(x+width,y+height,color,x,y+height,color)
+  draw_line(x+width,y+height,color,x-1,y+height,color)
   draw_line(x,y+height,color,x,y,color)
 end
 
