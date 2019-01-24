@@ -31,8 +31,25 @@ class Dir_list
     @hover_list = false
     @hover_item_index = nil
     @camera_index_offset = 0
+    @scroll_bar = self.build_scroll_bar()
     puts "Dir_list initialize complete"
     puts "@file_name_list.length = #{@file_name_list.length}"
+  end
+
+  def build_scroll_bar()
+    # scroll_obj = {x: @x, y: @y-12, height: 100, width: 10, car_height: 20, car_width: 8, car_pos: 0 }
+    bar_w = 10
+    scroll_obj = {
+      x: @x - bar_w - 6,
+      y: @y,
+      height: ( ((WIN_H-@y) < @total_height) ? WIN_H-@y : @total_height ) + 2,
+      width: bar_w,
+      car_height: 20,
+      car_width: 8,
+      car_y: (@y + (@camera_index_offset * Master_font_size) )
+    }
+    puts "@scroll_bar = #{scroll_obj}"
+    return scroll_obj
   end
 
   def build_dir_list_txt(dir_str)
@@ -96,18 +113,21 @@ class Dir_list
     @total_height = ( @file_name_list.length * Master_font_size )
     @hover_list = false
     @hover_item_index = nil
+    @scroll_bar = self.build_scroll_bar()
   end
 
   def try_move_list_up()
     if (@camera_index_offset > 0)
       @camera_index_offset -= 1
+      @scroll_bar = self.build_scroll_bar()
       puts "@camera_index_offset = #{@camera_index_offset}"
     end
   end
 
   def try_move_list_down()
-    if (@camera_index_offset < @file_name_list.length)
+    if (@camera_index_offset < (@file_name_list.length - 1) )
       @camera_index_offset += 1
+      @scroll_bar = self.build_scroll_bar()
       puts "@camera_index_offset = #{@camera_index_offset}"
     end
   end
@@ -117,8 +137,7 @@ class Dir_list
     # draw_line(@x,@y,Colors::Green,  @x+50,@y,Colors::Green)
     # draw_line(@x,@y,Colors::Green,  @x,@y+50,Colors::Green)
     ### directory title path
-    dir_path_color = Colors::Orange
-    top = 5
+    dir_path_color = Colors::Mint
     # puts "path_img.height = #{@path_img.height}"
     @path_img.draw(@x,@y-@title_size,1,
                    1,1,dir_path_color)
@@ -164,13 +183,24 @@ class Dir_list
                 @total_width,Master_font_size,
                 Colors::MossGreen)
     end
-  end # end draw
+    # draw scroll bar
+    # scroll_obj = {x: @x, y: @y-12, height: 100, width: 10, car_height: 20, car_width: 8, car_pos: 0 }
+    draw_box( @scroll_bar[:x], @scroll_bar[:y],
+              @scroll_bar[:width], @scroll_bar[:height], Colors::Mint )
+    # scroll_bar car
+    draw_box( @scroll_bar[:x] + 1, @scroll_bar[:car_y] + 1,
+              @scroll_bar[:car_width], @scroll_bar[:car_height],
+              Colors::Mint )
+    draw_rect(@scroll_bar[:x] + 1, @scroll_bar[:car_y] + 2,
+              @scroll_bar[:car_width] - 1, @scroll_bar[:car_height] - 1,
+              Colors::Red )
+  end # end DRAW
 
   def update()
     self.check_mouse_over_list();
     if (@hover_list == true)
       @hover_item_index = self.get_list_item_hover_index()
     end
-  end # end update
+  end # end UPDATE
 
 end
