@@ -32,25 +32,27 @@ class Dir_list
     @hover_item_index = nil
     @camera_index_offset = 0
     @scroll_bar = self.build_scroll_bar()
-    puts "Dir_list initialize complete"
-    puts "@file_name_list.length = #{@file_name_list.length}"
+    # puts "Dir_list initialize complete"
+    # puts "@file_name_list.length = #{@file_name_list.length}"
   end
 
   def build_scroll_bar()
     # scroll_obj = {x: @x, y: @y-12, height: 100, width: 10, car_height: 20, car_width: 8, car_pos: 0 }
     bar_w = 10
+    bar_h = ( (@total_height > (WIN_H - @y - 5) ) ? (WIN_H - @y - 5) : (@total_height) ) # reduce size if off screen
+    car_jump_gap = ( (bar_h - 20) / @cur_dir_entries.length ).floor
+    # puts "car_jump_gap #{car_jump_gap}"
     scroll_obj = {
       x: @x - bar_w - 6,
       y: @y,
-      # ( ((@scroll_bar[:height] + @y + 5) > WIN_H) ? (WIN_H - @y - 5) : (@scroll_bar[:height]) )
-      # height: ( ((WIN_H-@y) < @total_height) ? WIN_H-@y : @total_height ) + 2,
-      height: ( (@total_height > (WIN_H - @y - 5) ) ? (WIN_H - @y - 5) : (@total_height) ),
+      height: bar_h,
       width: bar_w,
       car_height: 20,
       car_width: 8,
-      car_y: (@y + (@camera_index_offset * Master_font_size) )
+      car_y: (@y + (@camera_index_offset * car_jump_gap) ),
+      car_hop: car_jump_gap
     }
-    puts "@scroll_bar = #{scroll_obj}"
+    # puts "@scroll_bar = #{scroll_obj}"
     return scroll_obj
   end
 
@@ -121,7 +123,7 @@ class Dir_list
   def try_move_list_up()
     if (@camera_index_offset > 0)
       @camera_index_offset -= 1
-      @scroll_bar = self.build_scroll_bar()
+      @scroll_bar[:car_y] -= @scroll_bar[:car_hop]
       puts "@camera_index_offset = #{@camera_index_offset}"
     end
   end
@@ -129,7 +131,7 @@ class Dir_list
   def try_move_list_down()
     if (@camera_index_offset < (@file_name_list.length - 1) )
       @camera_index_offset += 1
-      @scroll_bar = self.build_scroll_bar()
+      @scroll_bar[:car_y] += @scroll_bar[:car_hop]
       puts "@camera_index_offset = #{@camera_index_offset}"
     end
   end
