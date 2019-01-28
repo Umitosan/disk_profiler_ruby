@@ -42,7 +42,9 @@ class Dir_list
     scroll_obj = {
       x: @x - bar_w - 6,
       y: @y,
-      height: ( ((WIN_H-@y) < @total_height) ? WIN_H-@y : @total_height ) + 2,
+      # ( ((@scroll_bar[:height] + @y + 5) > WIN_H) ? (WIN_H - @y - 5) : (@scroll_bar[:height]) )
+      # height: ( ((WIN_H-@y) < @total_height) ? WIN_H-@y : @total_height ) + 2,
+      height: ( (@total_height > (WIN_H - @y - 5) ) ? (WIN_H - @y - 5) : (@total_height) ),
       width: bar_w,
       car_height: 20,
       car_width: 8,
@@ -185,6 +187,7 @@ class Dir_list
     end
     # draw scroll bar
     # scroll_obj = {x: @x, y: @y-12, height: 100, width: 10, car_height: 20, car_width: 8, car_pos: 0 }
+    # t_height = ( ((@scroll_bar[:height] + @y + 5) > WIN_H) ? (WIN_H - @y - 5) : (@scroll_bar[:height]) ) # make sure the max scroll bar height isn't off the screen
     draw_box( @scroll_bar[:x], @scroll_bar[:y],
               @scroll_bar[:width], @scroll_bar[:height], Colors::Mint )
     # scroll_bar car
